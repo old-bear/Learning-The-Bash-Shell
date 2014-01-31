@@ -1,0 +1,87 @@
+#!/bin/bash
+######################################################################
+# Author: jrjbear@gmail.com
+# Date: Sun Jan 12 17:04:30 2014
+# File: lr
+#
+# Usage: lr [-w width] [-d depth] [dir...]
+# Description: Recursively list contents of `dir' as a tree structure
+######################################################################
+
+readonly DFT_WIDTH=8
+readonly DFT_LEVEL=6
+readonly DFT_DIR="."
+
+width="${DFT_WIDTH}"
+max_level="${DFT_LEVEL}"
+dashes=""
+
+# $1 is the level of current directory
+# $2 is the target directory
+function trace_dir()
+{
+    local leading="|"
+    for (( i = 1; i < $1; ++i )); do
+        leading="${leading}$(printf '%*s' ${width} '|')"
+    done
+   
+    if (( $1 > "${max_level}" )); then
+        echo "${leading}..."
+        return
+    fi
+
+    echo "${leading}"
+ 
+    local dir=$2
+    for tryfile in $(ls $2); do
+        echo -n "${leading}${dashes}${tryfile}"
+
+        dir="${dir}/${tryfile}"
+        if [[ -d "$dir" ]]; then
+            echo "/"
+            trace_dir $(($1+1)) "${dir}"
+            echo "${leading}"
+        else
+            echo ""
+        fi
+
+        dir="${dir%/*}"
+    done
+}
+
+function print_usage()
+{
+    echo "Usage: lr [-w width] [-d depth] [dir...]" >&2
+    echo "Recursively list contents of \`dir' (default is ${DFT_DIR}) as a tree structure" >&2
+    echo "" >&2
+    echo "-w: output width of each level, default is ${DFT_WIDTH}" >&2
+    echo "-d: maximum depth of subdirectory, default is ${DFT_LEVEL}" >&2
+}
+
+while getopts ":w:d:" opt; do
+    case $opt in
+        w ) width="${OPTARG}" ;;
+        d ) max_level="${OPTARG}" ;;
+        \?) print_usage; exit 1 ;;
+    esac
+done
+shift $(($OPTIND-1))
+
+for (( i = 1; i < "${width}"; ++i )); do
+    dashes="${dashes}-"
+done
+
+if [[ -n "$@" ]]; then
+    for dir in "$@"; do
+        if [[ ! -d "${dir}" ]]; then
+            echo "${dir} is not a directory!" >&2
+        else
+            echo "${dir}/"
+            trace_dir 1 "${dir}"
+        fi
+        echo -e "\n--------------------------------------------------------\n"
+    done
+else
+    echo "./"
+    trace_dir 1 "."
+fi

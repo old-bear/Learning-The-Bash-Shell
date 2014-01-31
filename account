@@ -1,0 +1,37 @@
+#!/bin/bash
+######################################################################
+# Author: jrjbear@gmail.com
+# Date: Thu Jan 30 12:07:38 2014
+# File: account
+#
+# Usage: account userid
+# Description: Print account information according to the given userid
+######################################################################
+
+# Set IFS to `\n' (instead of default) to split result of `cut'
+# since it may contain blanks in username. Also we can't quote
+# the command substitution because it will suppress splitting
+saved_ifs="${IFS}"
+IFS='\
+'
+for entry in $(cut -f1,3,5 -d: /etc/passwd); do
+    user="${entry%%:*}"
+    name="${entry##*:}"
+    user_uid="${entry%:*}"
+    uid=${user_uid#*:}
+    acc[${uid}]="${user}:${name}"
+done
+IFS="${saved_ifs}"
+
+if ! echo $1 | grep '^[0-9]\+$' > /dev/null; then
+    echo "Usage: account userid" >&2
+    exit 1
+fi
+
+if [[ -z "${acc[$1]}" ]]; then
+    echo "User ID $1 not found" >&2
+    exit 1
+fi
+
+echo "User ID $1 is ${acc[$1]%:*}, whose full name is ${acc[$1]#*:}"
+echo "There are currently ${#acc[@]} user accounts on the system"
