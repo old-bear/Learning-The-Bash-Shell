@@ -8,20 +8,18 @@
 # Description: Print account information according to the given userid
 ######################################################################
 
-# Set IFS to `\n' (instead of default) to split result of `cut'
-# since it may contain blanks in username. Also we can't quote
-# the command substitution because it will suppress splitting
-saved_ifs="${IFS}"
-IFS='\
-'
-for entry in $(cut -f1,3,5 -d: /etc/passwd); do
-    user="${entry%%:*}"
-    name="${entry##*:}"
-    user_uid="${entry%:*}"
+
+# Use `read' instead of `for' loop to get fields because they may
+# contain blanks in username. Use process substitution instead of
+# pipes to while since the latter will run in a subshell (which
+# hides the variable inside `while').
+while read line; do
+    user="${line%%:*}"
+    name="${line##*:}"
+    user_uid="${line%:*}"
     uid=${user_uid#*:}
     acc[${uid}]="${user}:${name}"
-done
-IFS="${saved_ifs}"
+done < <(cut -f1,3,5 -d: /etc/passwd)
 
 if ! echo $1 | grep '^[0-9]\+$' > /dev/null; then
     echo "Usage: account userid" >&2
