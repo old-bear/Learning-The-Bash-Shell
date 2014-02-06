@@ -22,7 +22,7 @@ while read line; do
 done < <(cut -f1,3,5 -d: /etc/passwd)
 
 if ! echo $1 | grep '^[0-9]\+$' > /dev/null; then
-    echo "Usage: account userid" >&2
+    echo "Usage: $0 userid" >&2
     exit 1
 fi
 

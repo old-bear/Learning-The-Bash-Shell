@@ -1,0 +1,169 @@
+#!/bin/bash
+######################################################################
+# Author: jrjbear@gmail.com
+# Date: Wed Feb  5 20:19:47 2014
+# File: convert2jpg
+#
+# Usage: convert2jpg [-Sq] [-s N] [-w N] [-c S] image
+# Description: A helper script tool wrapping NetPBM utilities
+######################################################################
+
+# Set up the defaults
+width=1
+colour='-color grey'
+quiet=""
+standardise=' | pnmtojpeg ${quiet}'
+commands=""
+
+function print_usage()
+{
+    echo "Usage: $0 [-Sq] [-s N] [-w N] [-c S] image" >&2
+    echo "Convert images of different types (gif, tiff...) into jpeg" >&2
+    echo "-S: Enhance the image and make it sharper" >&2
+    echo "-s: Scale the image to \`N'" >&2
+    echo "-w: Add a border to the image with width=\`N'" >&2
+    echo "-c: Add a border to the image with colour=\`S'" >&2 
+    echo "-q: Suppress diagnostic message" >&2
+    echo "Note that the order of enhance/scale/border options will be" >&2
+    echo "used as the order to do the corresponding operations" >&2
+}
+
+# Mock functions for NetPBM utilities. Note that we use global
+# variable `quiet' to avoid parsing the arguments temporarily
+# $1 is the input filename (empty means stdin)
+# $2 is the output string
+# $3 is the diagnostic message
+function _netpbm_mock_func()
+{
+    cat $1
+    echo "$2"
+    if [[ -z "${quiet}" ]]; then
+        echo "$3" >&2
+    fi
+}
+
+function pnmnlfilt()
+{ 
+    _netpbm_mock_func "" "${FUNCNAME} $*" \
+        "Enhance the image using parameters: $*" 
+}
+
+function pnmscale()
+{
+    _netpbm_mock_func "" "${FUNCNAME} $*" \
+        "Scale the image using parameters: $*" 
+}
+
+function pnmmargin()
+{
+    _netpbm_mock_func "" "${FUNCNAME} $*" \
+        "Add margin to image using parameters: $*" 
+}
+
+function giftopnm()
+{ 
+    local file="$1"
+    if [[ -n "${quiet}" ]]; then
+        file="$2"
+    fi
+    _netpbm_mock_func "${file}" "${FUNCNAME} $*" \
+        "Convert gif file to pnm file"
+}
+
+function tgatoppm()
+{
+    local file="$1"
+    if [[ -n "${quiet}" ]]; then
+        file="$2"
+    fi
+    _netpbm_mock_func "${file}" "${FUNCNAME} $*" \
+        "Convert tga file to ppm file"
+}
+
+function xpmtoppm()
+{
+    local file="$1"
+    if [[ -n "${quiet}" ]]; then
+        file="$2"
+    fi
+    _netpbm_mock_func "${file}" "${FUNCNAME} $*" \
+        "Convert xpm file to ppm file"
+}
+
+function pcxtoppm()
+{
+    local file="$1"
+    if [[ -n "${quiet}" ]]; then
+        file="$2"
+    fi
+    _netpbm_mock_func "${file}" "${FUNCNAME} $*" \
+        "Convert pcx file to ppm file"
+}
+
+function tifftopnm()
+{
+    local file="$1"
+    if [[ -n "${quiet}" ]]; then
+        file="$2"
+    fi
+    _netpbm_mock_func "${file}" "${FUNCNAME} $*" \
+        "Convert tiff file to pnm file"
+}
+
+function jpegtopnm()
+{
+    local file="$1"
+    if [[ -n "${quiet}" ]]; then
+        file="$2"
+    fi
+    _netpbm_mock_func "${file}" "${FUNCNAME} $*" \
+        "Convert jpeg file to pnm file"
+}
+
+function pnmtojpeg()
+{ 
+    _netpbm_mock_func "" "${FUNCNAME} $*" \
+        "Convert pnm file to jpeg file" 
+}
+
+
+while getopts ":Sqs:w:c:" opt; do
+    case $opt in
+        S ) sharpness=' | pnmnlfilt -0.7 0.45 ${quiet}'
+            commands="${commands}${sharpness}" ;;
+        s ) size=$OPTARG
+            scale=' | pnmscale -xysize ${size} ${size} ${quiet}'
+            commands="${commands}${scale}" ;;
+        w ) width=$OPTARG
+            if [[ -z "${border}" ]]; then
+                border=' | pnmmargin ${colour} ${width} ${quiet}' 
+                commands="${commands}${border}" 
+            fi ;;
+        c ) colour="-color ${OPTARG}"
+            if [[ -z "${border}" ]]; then
+                border=' | pnmmargin ${colour} ${width} ${quiet}' 
+                commands="${commands}${border}" 
+            fi ;;
+        q ) quiet='-quiet' ;;
+        \?) print_usage
+            exit 1 ;;
+    esac
+done
+shift $(($OPTIND-1))
+
+for filename in "$@"; do
+    case "${filename}" in
+        *.gif ) convert='giftopnm' ;;
+        *.tga ) convert='tgatoppm' ;;
+        *.xpm ) convert='xpmtoppm' ;;
+        *.pcx ) convert='pcxtoppm' ;;
+        *.tif ) convert='tifftopnm' ;;
+        *.jpg ) convert='jpegtopnm' ;;
+            * ) echo "$0: Unknown filetype '${filename##*.}'" >&2
+                exit 1;;
+    esac
+    
+    convert="${convert}"' ${quiet}'
+    outfile="${filename%.*}.new.jpg"
+    eval "${convert}" "${filename}" "${commands}" "${standardise}" > "${outfile}"
+done

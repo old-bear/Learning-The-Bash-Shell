@@ -51,9 +51,8 @@ function trace_dir()
 
 function print_usage()
 {
-    echo "Usage: lr [-w width] [-d depth] [dir...]" >&2
+    echo "Usage: $0 [-w width] [-d depth] [dir...]" >&2
     echo "Recursively list contents of \`dir' (default is ${DFT_DIR}) as a tree structure" >&2
-    echo "" >&2
     echo "-w: output width of each level, default is ${DFT_WIDTH}" >&2
     echo "-d: maximum depth of subdirectory, default is ${DFT_LEVEL}" >&2
 }

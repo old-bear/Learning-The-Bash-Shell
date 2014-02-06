@@ -13,9 +13,8 @@ function kcd()
 {
     local newdir=""
     case "$#" in
-        0 | 1) 
-            builtin cd $1 ;;
-        2    ) 
+        0 | 1 ) builtin cd $1 ;;
+        2 ) 
             if echo "${PWD}" | grep "$1" > /dev/null; then
                 newdir="${PWD//$1/$2}"
                 builtin cd "${newdir}"
@@ -23,8 +22,7 @@ function kcd()
                 echo "bash: cd: bad substitution" >&2
                 return 1
             fi ;;
-        *    )
-            echo "bash: cd: wrong arg count" 1>&2
+        * ) echo "bash: cd: wrong arg count" 1>&2
             return 1 ;;
     esac
 }
