@@ -8,43 +8,46 @@
 # Description: Recursively list contents of `dir' as a tree structure
 ######################################################################
 
-readonly DFT_WIDTH=8
+readonly DFT_WIDTH=4
 readonly DFT_LEVEL=6
 readonly DFT_DIR="."
 
 width="${DFT_WIDTH}"
 max_level="${DFT_LEVEL}"
 dashes=""
+blanks=""
 
 # $1 is the level of current directory
 # $2 is the target directory
+# $3 is the leading characters
 function trace_dir()
 {
-    local leading="|"
-    for (( i = 1; i < $1; ++i )); do
-        leading="${leading}$(printf '%*s' ${width} '|')"
-    done
-   
     if (( $1 > "${max_level}" )); then
-        echo "${leading}..."
+        echo "$3|${dashes}..."
         return
     fi
 
-    echo "${leading}"
- 
     local dir=$2
+    local total=0
     for tryfile in $(ls $2); do
-        echo -n "${leading}${dashes}${tryfile}"
+        let total=total+1;
+    done
 
+    local count=0
+    for tryfile in $(ls $2); do
+        echo "$3|${dashes}${tryfile}"
         dir="${dir}/${tryfile}"
+        let count=count+1
         if [[ -d "$dir" ]]; then
-            echo "/"
-            trace_dir $(($1+1)) "${dir}"
-            echo "${leading}"
-        else
-            echo ""
+            if ((count == total)); then
+                # This is the last entry
+                trace_dir $(($1+1)) "${dir}" "$3 ${blanks}"
+            else
+                trace_dir $(($1+1)) "${dir}" "$3|${blanks}"
+                echo "$3|${blanks}"
+            fi
         fi
-
+        
         dir="${dir%/*}"
     done
 }
@@ -68,19 +71,24 @@ shift $(($OPTIND-1))
 
 for (( i = 1; i < "${width}"; ++i )); do
     dashes="${dashes}-"
+    blanks="${blanks} "
 done
 
 if [[ -n "$@" ]]; then
+    let count=0
     for dir in "$@"; do
+        if ((count++ >= 1)); then
+            echo -e "\n--------------------------------------------------------\n"
+        fi
+        
         if [[ ! -d "${dir}" ]]; then
             echo "${dir} is not a directory!" >&2
         else
-            echo "${dir}/"
-            trace_dir 1 "${dir}"
+            echo "${dir%/}/"
+            trace_dir 1 "${dir}" ""
         fi
-        echo -e "\n--------------------------------------------------------\n"
     done
 else
     echo "./"
-    trace_dir 1 "."
+    trace_dir 1 "." ""
 fi
