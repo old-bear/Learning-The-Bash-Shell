@@ -27,7 +27,6 @@ function trace_dir()
         return
     fi
 
-    local dir=$2
     local total=0
     for tryfile in $(ls $2); do
         let total=total+1;
@@ -36,8 +35,8 @@ function trace_dir()
     local count=0
     for tryfile in $(ls $2); do
         echo "$3|${dashes}${tryfile}"
-        dir="${dir}/${tryfile}"
         let count=count+1
+        local dir="$2/${tryfile}"
         if [[ -d "$dir" ]]; then
             if ((count == total)); then
                 # This is the last entry
@@ -47,8 +46,6 @@ function trace_dir()
                 echo "$3|${blanks}"
             fi
         fi
-        
-        dir="${dir%/*}"
     done
 }
 
